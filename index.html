@@ -1,0 +1,326 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>docs/api</title>
+<script type="text/javascript" src="./docs/api/jquery/jquery-3.3.1.js"></script>
+<style>
+.docs {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: 0;
+}
+.toggle {
+  position: absolute;
+  background-color: lavender;
+  top: 1px; left: 1px;
+  height: 1px; width: 1px;
+}
+.helper {
+  border: solid 1px gray;
+  display: inline-block;
+  background-color: white;
+}
+details > details {
+  padding-left: 10px;
+}
+div > details {
+  font-family: sans-serif;
+  font-size: smaller;
+}
+summary > span:hover {
+  cursor: pointer;
+}
+details > span:hover {
+    cursor: pointer;
+}
+details > span:before {
+  content: "\0203a";
+  padding-left: 14px;
+  padding-right: 6px;
+}
+.it {
+  font-style: italic;
+}
+#PackageTree {
+  padding: 5px 10px 5px 10px;
+}
+</style>
+</head>
+<body onload="main()">
+<script>
+
+var DocsDir = './docs';
+var Toggles = new Map(); // id:element
+
+var Classes = new Map(); // 'class.name':'package.name'
+var Packages = new Map(); // 'package.name':'module.name'
+var Interfaces = new Set();
+
+function main() {
+  enableToggles();
+  enableFrame();
+  enableClassList();
+  enablePackageTree();
+  enableHelpOptions();
+  loadApiLinks();
+}
+
+function enableToggles() {
+  $('.toggle').each((i,e) => {
+    let t = $(e);
+    t.on('click',onToggle);
+    Toggles.set(t.attr('id'),e);
+  });
+}
+
+function enableFrame() {
+  $('#mainFrame')
+   .on('load', event => onFrame(event.target) )
+   .each( (i,e) => {
+      DocsDir = e.src.replace('/api/index.html','');
+      onFrame(e);
+   });
+}
+
+function onFrame(f) {
+  $(f.contentWindow.document)
+   .find('div.topNav > ul.navList >  li')
+   .each((i,e) => {
+      let t = Toggles.get(e.textContent);
+      if (t) moveToggle(t,e);
+   });
+}
+
+function moveToggle(t,e) {
+  let r = e.getBoundingClientRect();
+  let p = padding(e);
+  t.style.top = ( 1 + r.bottom - p.bottom )+'px';
+  t.style.left = ( r.left + p.left )+'px';
+  t.style.height = ( p.bottom )+'px';
+  t.style.width = ( r.width - p.left - p.right )+'px';
+}
+
+function padding(e) {
+  let cs = getComputedStyle(e);
+  return { left: px(cs,'padding-left'),
+           right: px(cs,'padding-right'),
+           bottom: px(cs,'padding-bottom') };
+}
+
+function px(cs,key) {
+  let v = cs.getPropertyValue(key);
+  return parseInt(v.substr(0,v.length-2));
+}
+
+function loadApiLinks() {
+  $.ajax({ url:DocsDir+'/api/allclasses.html', dataType:'text' })
+   .done(allClasses);
+}
+
+function allClasses(d) {
+  console.log('read',DocsDir,'allclasses.html');
+  parseHtml(d);
+  makeClassList();
+  makePackageTree();
+}
+
+function parseHtml(d) {
+  const li = /<li><a href="(.*?)\/(.*)\/(.*?).html" title="(.*?) in .*?<\/li>/g;
+  let r; // 1=module, 2=package, 3=class, 4=class|interface
+  while (( r = li.exec(d) )) {
+    [u,m,p,c,i] = r;
+    Classes.set(c,p);
+    if (!Packages.has(p)) {
+      Packages.set(p,m);
+    }
+    if (i === 'interface') {
+      Interfaces.add(c);
+    }
+  }
+}
+
+function makeClassList() {
+  $('#ClassList').html(
+    Array.from(Classes.keys(), k => "<option value='"+k+"'>" )
+         .sort().join('')
+  );
+}
+
+function makePackageTree() {
+  $('#PackageTree').html(details(
+    Array.from(Classes.entries(), e => e[1]+'/'+e[0] )
+         .sort().map( e => e.split('/') ).entries()
+  ));
+}
+
+function details(names) {
+  let x = '';
+  let br = '';
+  let pk = [];
+  let next = names.next().value;
+  while (next) {
+    let dn = next[1];
+    let d = dn.findIndex( (e,i) => (e !== pk[i]) );
+    if (d === dn.length -1) {
+      next = names.next().value;
+      let cn = dn[d];
+      let it = Interfaces.has(cn) ? ' class="it"' : '';
+      x += br+'<span'+it+'>'+cn+'</span>';
+      br = '<br>';
+    } else {
+      br = '';
+      if (d < pk.length) {
+        pk.pop();
+        x += '</details>';
+      } else {
+        let pn = dn[d];
+        pk.push(pn);
+        x += '<details><summary><span>'+pn+'</span></summary>';
+      }
+    }
+  }
+  if (pk.length) {
+    x += '</details>'.repeat(pk.length);
+  }
+  return x;
+}
+
+function enableClassList() {
+  const h = (function() {
+    let selected = false;
+    return {
+      inputListener: function(event) {
+        if (event.originalEvent.isComposing) {
+          selected = true;
+          onInput(event.target);
+        }
+      },
+      keyupListener: function(event) {
+        if (event.key === 'Enter') {
+          if (selected) {
+            selected = false;
+          } else {
+            onInput(event.target);
+          }
+        }
+      }
+    };
+  })();
+
+  $('#ClassItem')
+   .on('input',h.inputListener)
+   .on('keyup',h.keyupListener);
+}
+
+function enablePackageTree() {
+  $('#PackageTree')
+  .on('click', event => {
+    if (event.target.tagName === 'SPAN') {
+      onClick(event.target);
+    }
+  });
+}
+
+function onInput(e) {
+  loadFrame(classRef(e.value));
+}
+
+function onClick(e) {
+  let p = e.parentElement;
+  if (p.tagName === 'SUMMARY') {
+    p.click(); // undo bubbled click
+    loadFrame(packageRef(path(e)));
+  } else {
+    loadFrame(classRef(e.textContent));
+  }
+}
+
+function onToggle(event) {
+  let t = event.target;
+  let x = $('#ui'+t.id);
+  if (x.is(':visible')) {
+    x.hide();
+  } else {
+    $('.helper').hide();
+    x.show().offset({ top: t.offsetTop + (2*t.offsetHeight), left: t.offsetLeft });
+  }
+}
+
+function path(e) {
+  let t = []; // let e = e.textContent;
+  $(e).parentsUntil('div')
+   .each((i,e) => {
+      let p = $(e).children('summary:first-child').text();
+      if (p) t.push(p);
+    });
+  return t.reverse().join('/');
+}
+
+function loadFrame(src) {
+  if (src) {
+    $('.helper').hide();
+    $('#mainFrame')[0].src = DocsDir+'/api/'+src+'.html';
+  }
+}
+
+function classRef(c) {
+  if (Classes.has(c)) {
+    let p = Classes.get(c);
+    return packageRef(p,c);
+  }
+}
+
+function packageRef(p,c='package-summary') {
+  if (Packages.has(p)) {
+    let m = Packages.get(p);
+    return m+'/'+p+'/'+c;
+  }
+}
+
+function enableHelpOptions() {
+  $.ajax({ url:'./index.help', dataType:'text' })
+   .done(helpItems);
+}
+
+function helpItems(text) {
+  $('#HelpList')
+   .html(text)
+   .on('change',onSelect);
+}
+
+function onSelect(event) {
+  let e = event.target;
+  let o = e.options[e.selectedIndex];
+  if (o.value !== o.textContent) {
+    let p = o.value.split(';');
+    window.open(p[1],p[0]);
+    e.parentElement.style.display = 'none';
+  }
+}
+
+</script>
+
+<iframe id="mainFrame" class="docs" src="./docs/api/index.html" allowfullscreen></iframe>
+
+<div id="Package" class="toggle"></div>
+<div id="Class" class="toggle"></div>
+<div id="Help" class="toggle"></div>
+
+<div id="uiPackage" class="helper" style="display:none">
+ <div id="PackageTree"></div>
+</div>
+
+<div id="uiClass" class="helper" style="display:none">
+ <input list="ClassList" id="ClassItem" />
+ <datalist id="ClassList">
+ </datalist>
+</div>
+
+<div id="uiHelp" class="helper" style="display:none">
+ <select id="HelpList"></select>
+</div>
+
+</body>
+</html>

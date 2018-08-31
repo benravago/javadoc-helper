@@ -1,0 +1,52 @@
+  <optgroup label="Overview">
+   <option>Release Notes</option>
+   <option>Migration Guide</option>
+   <option>Download the JDK</option>
+   <option>Install Guide</option>
+   <option>New Version String</option>
+  </optgroup>
+  <optgroup label="Tools">
+   <option>Tools Reference</option>
+   <option>JShell User's Guide</option>
+   <option>Javadoc Guide</option>
+  </optgroup>
+  <optgroup label="Language and Libraries">
+   <option>Language Updates</option>
+   <option>Core Libraries</option>
+   <option>Java Tutorials</option>
+   <option>Modular JDK</option>
+   <option>Java Scripting Guide</option>
+   <option>Nashorn User's Guide</option>
+  </optgroup>
+  <optgroup label="Specifications">
+   <option>API Documentation</option>
+   <option>Language and VM</option>
+   <option value="JSJAR;./docs/specs/jar/jar.html">JAR</option>
+   <option>Java Native Interface (JNI)</option>
+   <option>JVM Tool Interface (JVM TI)</option>
+   <option>Serialization</option>
+  </optgroup>
+  <optgroup label="Security">
+   <option>Secure Coding Guidelines</option>
+   <option>Security Guide</option>
+  </optgroup>
+  <optgroup label="HotSpot Virtual Machine">
+   <option>Java Virtual Machine Guide</option>
+   <option>Garbage Collection Tuning</option>
+   <option>JRockit to HotSpot Migration Guide</option>
+  </optgroup>
+  <optgroup label="Manage and Troubleshoot">
+   <option>Troubleshooting Guide</option>
+   <option>Java Flight Recorder</option>
+   <option>Java Mission Control</option>
+   <option>Management Guide</option>
+   <option>JMX Guide</option>
+  </optgroup>
+  <optgroup label="Deploy">
+   <option>Deployment Guide</option>
+   <option>Java Control Panel</option>
+  </optgroup>
+  <optgroup label="Client Technologies">
+   <option>JavaFX and Swing (JDK 8)</option>
+   <option>Java Accessibility Guide</option>
+  </optgroup>
