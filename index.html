@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <title>docs/api</title>
-<script type="text/javascript" src="./docs/api/jquery/jquery-3.3.1.js"></script>
+<script type="text/javascript" src="./docs/api/jquery/external/jquery/jquery.js"></script>
 <style>
 .docs {
   position: absolute;
@@ -115,22 +115,25 @@ function px(cs,key) {
 }
 
 function loadApiLinks() {
-  $.ajax({ url:DocsDir+'/api/allclasses.html', dataType:'text' })
+  $.ajax({ url:DocsDir+'/api/allclasses-index.html', dataType:'text' })
    .done(allClasses);
 }
 
 function allClasses(d) {
-  console.log('read',DocsDir,'allclasses.html');
+  console.log('read',DocsDir);
   parseHtml(d);
   makeClassList();
   makePackageTree();
+  console.log(Classes.size,'elements');
 }
 
 function parseHtml(d) {
   let dup = new Array();
-  const li = /<li><a href="(.*?)\/(.*)\/(.*?).html" title="(.*?) in .*?<\/li>/g;
-  let r; // 1=module, 2=package, 3=class, 4=class|interface
-  while (( r = li.exec(d) )) {
+  const td = /<td class="colFirst"><a (.*?)>.*?<\/a>.*?<\/td>/g;
+  const li = /href="(.*?)\/(.*)\/(.*?).html" title="(.*?) in .*?"/;
+  let a; // 1=module, 2=package, 3=class, 4=class|interface
+  while (( a = td.exec(d) )) {
+    let r = a[1].match(li);
     [u,m,p,c,i] = r;
     if (Classes.has(c)) {
       dup.push([c,Classes.get(c),...r]);
@@ -144,7 +147,7 @@ function parseHtml(d) {
       Interfaces.add(c);
     }
   }
-  dup.forEach(r =>{
+  dup.forEach(r => {
     [k,v,u,m,p,c,i] = r;
     Classes.delete(k);
     Classes.set(k+' ('+v.replace(/\//g,'.')+')',v);
@@ -178,7 +181,12 @@ function details(names) {
       next = names.next().value;
       let cn = dn[d];
       let it = Interfaces.has(cn) ? ' class="it"' : '';
-      x += br+'<span'+it+'>'+cn+'</span>';
+      let p = cn.indexOf(' ');
+      if (p > 0) {
+        x += br+'<span title="'+cn.substr(p+1)+'"'+it+'>'+cn.substr(0,p)+'</span>';
+      } else {
+        x += br+'<span'+it+'>'+cn+'</span>';
+      }
       br = '<br>';
     } else {
       br = '';
@@ -244,7 +252,10 @@ function onClick(e) {
     p.click(); // undo bubbled click
     loadFrame(packageRef(path(e)));
   } else {
-    loadFrame(classRef(e.textContent));
+    let c = e.textContent;
+    let t = e.title;
+    if (t) c = c+' '+t;
+    loadFrame(classRef(c));
   }
 }
 
@@ -260,7 +271,7 @@ function onToggle(event) {
 }
 
 function path(e) {
-  let t = [];
+  let t = []; // let e = e.textContent;
   $(e).parentsUntil('div')
    .each((i,e) => {
       let p = $(e).children('summary:first-child').text();
